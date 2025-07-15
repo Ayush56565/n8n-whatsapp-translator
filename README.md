@@ -63,12 +63,6 @@ If the command format is wrong:
 
 > Invalid format. Use: @"group name" message OR @groupname message
 
-## 📅 Future Improvements
-
-- Add language translation
-- Support for image-to-caption response
-- More advanced tone adjustments (e.g., formal/informal)
-
 ## ✉️ Contact
 
 For questions or improvements, please reach out via GitHub or email.
