@@ -1,0 +1,1791 @@
+{
+  "name": "WhatsApp Translator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "79a9daaf-c57d-47a9-ad45-649cfdc4994b",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1380,
+        1520
+      ],
+      "id": "7bfce1db-1f43-4c3a-b428-fb5a1be16dd4",
+      "name": "Webhook",
+      "webhookId": "79a9daaf-c57d-47a9-ad45-649cfdc4994b"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "n8n_wa",
+        "remoteJid": "={{ $('If1').item.json.groupId }}",
+        "messageText": "={{ $json.text }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        1520
+      ],
+      "id": "0f50c379-5e25-4841-ae22-045e0cd7ba64",
+      "name": "Evolution API",
+      "credentials": {
+        "evolutionApi": {
+          "id": "ZTblmgcvoYELtJg1",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "10c378ee-faa5-46ea-9a1a-4ee2b03cc251",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "/translate",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -940,
+        1520
+      ],
+      "id": "8d988a73-d5ce-4d36-a2e2-037fceb19c07",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body.data.message.conversation || \"\";\n\n// Match either @\"group name with spaces\" or @groupname followed by the message\nconst match = input.match(/^@(?:\"([^\"]+)\"|(\\S+))\\s+(.+)/);\n\nif (match) {\n  const recipient = match[1] || match[2];\n  const message = match[3];\n\n  return [\n    {\n      json: {\n        valid: true,\n        remoteJid:$input.first().json.body.data.key.remoteJid,\n        recipient,\n        message,\n        original: input,\n      },\n    },\n  ];\n} else {\n  return [\n    {\n      json: {\n        valid: false,\n        error: 'Invalid format. Use: @\"group name\" message OR @groupname message',\n        original: input,\n      },\n    },\n  ];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1140,
+        1520
+      ],
+      "id": "550cb5de-12d1-403d-87b5-441b399eb713",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "url": "https://6e7c84f03018.ngrok-free.app/group/fetchAllGroups/n8n_wa?getParticipants=true",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -680,
+        1520
+      ],
+      "id": "f4955f05-5b3f-42ac-8ad3-13ba43af22cf",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "HoEKKrqsdRE0ri24",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "n8n_wa",
+        "remoteJid": "={{ $('Webhook').item.json.body.data.key.remoteJid }}",
+        "messageText": "Invalid format. Use: @\"group name\" message OR @groupname message",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        -680,
+        1760
+      ],
+      "id": "a0d241ce-267e-4148-bfac-cfe3c2abc50c",
+      "name": "Evolution API1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "ZTblmgcvoYELtJg1",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const recipient = $('Code').first().json.recipient\nconst message = $('Code').first().json.message\n\n// 3. Sample group list (replace this with actual data)\nconst groups = $('HTTP Request').all()\n\nconst matchedGroup = groups.find(group => group.json.subject === recipient);\n\nif (matchedGroup) {\n  return [{\n    json: {\n      valid: true,\n      recipientName: recipient,\n      message,\n      groupId: matchedGroup.json.id,\n      groupName: matchedGroup.json.subject\n    }\n  }];\n} else {\n  return [{\n    json: {\n      valid: false,\n      error: `Group \"${recipient}\" not found`,\n      availableGroups: groups.map(g => g.json.subject),\n    }\n  }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -460,
+        1520
+      ],
+      "id": "0ad0009c-0c8b-403a-9926-8cbbb9e579fe",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b6eaf2a7-3842-4f0a-a70a-c4605384ac12",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -220,
+        1520
+      ],
+      "id": "57e427dd-11e4-4896-baf6-f731d87d9499",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "n8n_wa",
+        "remoteJid": "={{ $('Code').all()[0].json.remoteJid }}",
+        "messageText": "={{ $json.error }}\nAvailable groups:\n{{ $json.availableGroups.join('\\n') }}\n",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        420,
+        1760
+      ],
+      "id": "426b3746-b951-4e3e-ab60-0c8d9baed79f",
+      "name": "Evolution API2",
+      "credentials": {
+        "evolutionApi": {
+          "id": "ZTblmgcvoYELtJg1",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://6e7c84f03018.ngrok-free.app/chat/findMessages/n8n_wa",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"where\": {\n    \"key\": {\n      \"remoteJid\": \"{{ $json.groupId }}\"\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        1520
+      ],
+      "id": "c8aebdb1-1036-40fd-b8a0-73de621b3b9d",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "HoEKKrqsdRE0ri24",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const records = $input.first().json.messages.records || [];\n\nconst messages = records\n  .map(item => {\n    const text = item.message?.conversation ||\n                 item.message?.protocolMessage?.editedMessage?.conversation ||\n                 null;\n    return text ? { text } : null;\n  })\n  .filter(Boolean).slice(0, 20) \n\n\nconst context = messages.map(msg => msg.text.replace(/\\n/g, \" \")).join(\"\\n\");\n\n\nreturn [{ json: { context } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        1520
+      ],
+      "id": "123523d8-1286-4210-8ca1-5888e814faa7",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a communication assistant that rewrites messages in a more professional, respectful, and clear tone, without changing the meaning or intent.\n\nBased on this conversation context provided below, rewrite the following user message to sound more polished and well-mannered. Just provide the message only without quotes, no other text.\n\nOriginal Message:\n\"{{ $('If1').item.json.message }}\"\n\n\nHere is the context of the recent group conversation:\n{{ $json.context }}\n\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        780,
+        1520
+      ],
+      "id": "2d82feb0-ec49-45ab-8273-5a302eb1a49c",
+      "name": "Translator"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        820,
+        1720
+      ],
+      "id": "df31d7f7-356b-4533-b270-03cac0870e1d",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "F88bEHx0XJwsh8N5",
+          "name": "Groq account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "HTTP Request1": [
+      {
+        "json": {
+          "messages": {
+            "total": 83,
+            "pages": 2,
+            "currentPage": 1,
+            "records": [
+              {
+                "id": "cmd4495wb008ojw5xjvr7n03i",
+                "key": {
+                  "id": "3F6984F4AFC3571FE8EB",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "protocolMessage",
+                "message": {
+                  "protocolMessage": {
+                    "key": {
+                      "id": "3F795B041C340C88005A",
+                      "fromMe": false,
+                      "remoteJid": "120363419939436902@g.us",
+                      "participant": "268487062757527@lid"
+                    },
+                    "type": "MESSAGE_EDIT",
+                    "timestampMs": "1752241240412",
+                    "editedMessage": {
+                      "conversation": "lets just use this channel as backup"
+                    }
+                  }
+                },
+                "messageTimestamp": 1752241231,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb008qjw5xqslt91hf",
+                "key": {
+                  "id": "3FEF4B4DA9C963B1C256",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "@916909370605  @639274298396  can we move this conversation to mattermost?"
+                },
+                "messageTimestamp": 1752241226,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "mentionedJid": [
+                    "916909370605@s.whatsapp.net",
+                    "639274298396@s.whatsapp.net"
+                  ]
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb008rjw5xk2o0p7ia",
+                "key": {
+                  "id": "3F2118336D27AC7B76CF",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Can you try this on testing it? But you also need to figure out how to use the WhatsApp free version on that project. \n\nTesting WhatsApp Automation Without Full Business Verification is Possible\n\nIt is indeed possible for your tech team to test the WhatsApp automation without completing the full business verification process. Meta provides a few options to facilitate development and testing in a sandbox environment.\n\nDeveloper-Focused Testing Options:\n\nFor developers looking to build and test integrations with the WhatsApp Business Platform, Meta offers a \"getting started\" experience that includes a test environment. When a developer adds the WhatsApp product to their app in the Meta for Developers portal, the platform automatically creates a test WhatsApp Business Account (WABA) and a test business phone number. This setup allows for sending free test messages to a limited number of recipient phone numbers (up to 5).[1] These test phone numbers can send an unlimited number of messages to these verified recipients.[2][3]\n\nThe test environment also comes with a pre-approved \"hello world\" message template to begin testing immediately.[1] This allows developers to experiment with the core functionalities of the WhatsApp Business API, such as sending and receiving messages, and configuring webhooks for real-time notifications.[1][4]\n\nLimitations of the Testing Environment:\n\nIt is important to note that this testing functionality has its limitations. The test phone number provided by Meta will display the Meta logo to recipients.[5] Furthermore, for outbound messages sent outside of a 24-hour customer service window, only pre-approved message templates can be used.[5] While the \"hello world\" template is provided, creating and using custom message templates for more specific use cases might still require business verification.\n\nUsing a Sandbox Environment from a Business Solution Provider (BSP):\n\nAnother avenue for testing without immediate business verification is to use a sandbox environment provided by a WhatsApp Business Solution Provider (BSP).[6][7][8] BSPs are third-party companies that offer tools and services to connect to the WhatsApp Business API.[9] Many BSPs, such as Zoho, MessageBird, and Twilio, offer their own sandbox environments that allow for prototyping and testing of WhatsApp messaging functionalities.[5][6][7] These sandboxes often come with a pre-configured WhatsApp phone number and allow you to test sending and receiving messages with your own test numbers.[6]\n\nIn summary, your developer can proceed with testing the hospitality-focused message enhancements by:\n\nUtilizing Meta's developer test environment: By creating a developer app and adding the WhatsApp product, they will gain access to a test WABA and phone number to send and receive messages.\n\nLeveraging a BSP's sandbox: Signing up with a BSP can provide a dedicated testing environment to prototype the desired messaging workflows.\n\nWhile full business verification will eventually be necessary to launch the automation to a wider audience with a branded business profile, these testing options provide a crucial stepping stone for development and refinement without needing to immediately provide extensive business details.\n\nSources\nhelp\nfacebook.com\nsmatbot.com\npostman.com\nmedium.com\ntwilio.com\nzoho.com\nbird.com\nautochat.io\nwanotifier.com\nGoogle Search Suggestions\nDisplay of Search Suggestions is required when using Grounding with Google Search. Learn more\nWhatsApp Business API testing without business verification\nWhatsApp Business sandbox environment\nMeta for Developers test users WhatsApp\nWhatsApp Business API development mode"
+                },
+                "messageTimestamp": 1752241221,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb008sjw5x2wye6l0t",
+                "key": {
+                  "id": "3F84D94190E27FACFD34",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Do we need WhatsApp Business to use that structure? We only just use free WhatsApp version"
+                },
+                "messageTimestamp": 1752241093,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb008tjw5x5af2qmag",
+                "key": {
+                  "id": "3EB0A5D91BC99A8ADDAA98",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "imageMessage",
+                "message": {
+                  "imageMessage": {
+                    "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m239/AQNu3I71uaY5T5cdviEpgk_AhQmZ797qd37C-hY4e8AdVTIECoTn6-CfzwjW46Dg2jVLRr0txAOIf5_g2Yi1MvSp4-6A5zelL51Wcla3FQ?ccb=9-4&oh=01_Q5Aa2AE2bQVNhf-hWnlm77GPKrrN-KBZUnUWYcGXcc80q9iN3w&oe=689832A5&_nc_sid=e6ed6c&mms3=true",
+                    "width": 591,
+                    "height": 704,
+                    "mediaKey": "BMCZUj8sgFv5GBFkESPgELX71+KHt32HRGOKFxGp0pQ=",
+                    "mimetype": "image/jpeg",
+                    "directPath": "/o1/v/t24/f2/m239/AQNu3I71uaY5T5cdviEpgk_AhQmZ797qd37C-hY4e8AdVTIECoTn6-CfzwjW46Dg2jVLRr0txAOIf5_g2Yi1MvSp4-6A5zelL51Wcla3FQ?ccb=9-4&oh=01_Q5Aa2AE2bQVNhf-hWnlm77GPKrrN-KBZUnUWYcGXcc80q9iN3w&oe=689832A5&_nc_sid=e6ed6c",
+                    "fileLength": "68777",
+                    "fileSha256": "azLU7ZySAhbwa3B8jhXU1Ixaw/xipFei7AjcR6Yhj7U=",
+                    "contextInfo": {
+                      "pairedMediaType": "NOT_PAIRED_MEDIA"
+                    },
+                    "fileEncSha256": "djGx1/F3Rs19HtiAL+xB6nNmothHer46Pqt5K77COu4=",
+                    "mediaKeyTimestamp": "1752226631"
+                  },
+                  "messageContextInfo": {
+                    "messageSecret": "jo5g6R21jSdWzoNpkHvyDgE2wDorujpqTbi5td4tWAw="
+                  }
+                },
+                "messageTimestamp": 1752226634,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "pairedMediaType": "NOT_PAIRED_MEDIA"
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb008ujw5x024bl7t3",
+                "key": {
+                  "id": "3EB0E45DE7309A40DB142E",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "imageMessage",
+                "message": {
+                  "imageMessage": {
+                    "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m232/AQMDUH-xMlLFqPvAoH03YJhesht529TiTC0hPm22CbB7HlhsktVutUuMGoFYHAL9RNgZfruzOkJnsJG9eZGzKPjUXHaYRFBBMlCHHMfjuA?ccb=9-4&oh=01_Q5Aa2AE53F6V29A0DswZBEyBv6jHYW40Pt3Q0QhMVZEtlB9vhA&oe=6898320B&_nc_sid=e6ed6c&mms3=true",
+                    "width": 1137,
+                    "height": 722,
+                    "caption": "is it possible to provide the WhatsApp credentials? I was trying to use my own account for testing, but Meta is asking me to verify my business with real information, and I can't proceed with testing.",
+                    "mediaKey": "9CKabGiBiBQa6l40es/88OADwHNQhxfsWDuC2qpjR7c=",
+                    "mimetype": "image/jpeg",
+                    "directPath": "/o1/v/t24/f2/m232/AQMDUH-xMlLFqPvAoH03YJhesht529TiTC0hPm22CbB7HlhsktVutUuMGoFYHAL9RNgZfruzOkJnsJG9eZGzKPjUXHaYRFBBMlCHHMfjuA?ccb=9-4&oh=01_Q5Aa2AE53F6V29A0DswZBEyBv6jHYW40Pt3Q0QhMVZEtlB9vhA&oe=6898320B&_nc_sid=e6ed6c",
+                    "fileLength": "146760",
+                    "fileSha256": "X4NBDT1t5y6vt9CCxeenu3/dRDIrmRqGS8nBzzeCH5o=",
+                    "contextInfo": {
+                      "pairedMediaType": "NOT_PAIRED_MEDIA"
+                    },
+                    "fileEncSha256": "DTKa4UD1W5+UMNOnhY6qacfnXVEVg+K9ZO0T7q9YhpM=",
+                    "mediaKeyTimestamp": "1752226356"
+                  },
+                  "messageContextInfo": {
+                    "messageSecret": "QKnlPIPHlNhCVbf+mTrhdhCQMK9WkxuHvIJ+0fiOOx0="
+                  }
+                },
+                "messageTimestamp": 1752226359,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "pairedMediaType": "NOT_PAIRED_MEDIA"
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb008vjw5xdk5vep3i",
+                "key": {
+                  "id": "3EB0400C29A7DCF94493F9",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "@140939469263009 clocked in",
+                  "messageContextInfo": {
+                    "messageSecret": "01uxeXLdXAGMXrbtu0+fPClmrnBTLkynwnc4FajMx+U="
+                  }
+                },
+                "messageTimestamp": 1752215503,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "mentionedJid": [
+                    "140939469263009@lid"
+                  ]
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb008wjw5xetw3qsge",
+                "key": {
+                  "id": "3F0F55ECE2F330B1939C",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Ok I can see the screenshots now."
+                },
+                "messageTimestamp": 1752184383,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb008xjw5xmffmsxkz",
+                "key": {
+                  "id": "3EB01B5547816CEC49D0C6",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "And I will work on the weekends to make up for the this",
+                  "messageContextInfo": {
+                    "messageSecret": "b48qd7CsHnDW1JI7+YbqXTrPQzt9/rfhH1cvpDUaqOA="
+                  }
+                },
+                "messageTimestamp": 1752182982,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb008yjw5xszpmmp5s",
+                "key": {
+                  "id": "3EB0386A38AF4C3FDB3F56",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "I looked into the issue. Since I am using Linux, the problem was that TopTracker is not able to take screenshots due to some internal display protocol errors, I had to go through the logs to see what was going wrong. So, I switched to a Windows VM and install TopTracker there. The screenshots are getting uploaded now. Sorry for the trouble @140939469263009 @268487062757527 , TopTracker does not seem to care about Linux users it seems.",
+                  "messageContextInfo": {
+                    "messageSecret": "aU7BCgj9+SCzGjyaUixeL2btPdPdZcMqJKcLS6S9vks="
+                  }
+                },
+                "messageTimestamp": 1752182945,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "mentionedJid": [
+                    "140939469263009@lid",
+                    "268487062757527@lid"
+                  ]
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb008zjw5xq5dmazvq",
+                "key": {
+                  "id": "3EB0FCCCA9CAD258552A0D",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "noted.",
+                  "messageContextInfo": {
+                    "messageSecret": "qtbnTvw9DHNb8mUNJEIKqXxBhlnebltgXHYH4Un/eqg="
+                  }
+                },
+                "messageTimestamp": 1752164657,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "stanzaId": "3F05DAFD771869F27614",
+                  "participant": "140939469263009@lid",
+                  "quotedMessage": {
+                    "conversation": "Please prioritize your tracker @916909370605"
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb0090jw5xm9m2hz4n",
+                "key": {
+                  "id": "3F05DAFD771869F27614",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Please prioritize your tracker @916909370605"
+                },
+                "messageTimestamp": 1752164624,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "mentionedJid": [
+                    "916909370605@s.whatsapp.net"
+                  ]
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb0091jw5xhqelxfym",
+                "key": {
+                  "id": "3EB0C582DB05CC29536DE7",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "imageMessage",
+                "message": {
+                  "imageMessage": {
+                    "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m231/AQMhlsYh3fGQXiDKwCzMJQQuYiATq0xqY68S1BJZOOIMKbOnhz_KqAtsfCOZKcAyNboTT7SQO30SFYgJdg3TqPc1T9vs5SlKSYKh5Ef9hA?ccb=9-4&oh=01_Q5Aa2AEbIT6DxYrXEvAQYkjhfZEPT-HZHCWqygCzvsCExhG48g&oe=689763D7&_nc_sid=e6ed6c&mms3=true",
+                    "width": 1600,
+                    "height": 886,
+                    "caption": "i was working on this and going through the docs",
+                    "mediaKey": "Gs6LCM9+UOpQNTWfW8u22FsUOVXf33sy0lm6vi+woxM=",
+                    "mimetype": "image/jpeg",
+                    "directPath": "/o1/v/t24/f2/m231/AQMhlsYh3fGQXiDKwCzMJQQuYiATq0xqY68S1BJZOOIMKbOnhz_KqAtsfCOZKcAyNboTT7SQO30SFYgJdg3TqPc1T9vs5SlKSYKh5Ef9hA?ccb=9-4&oh=01_Q5Aa2AEbIT6DxYrXEvAQYkjhfZEPT-HZHCWqygCzvsCExhG48g&oe=689763D7&_nc_sid=e6ed6c",
+                    "fileLength": "172330",
+                    "fileSha256": "SYU6iNVXqn6xTA0rDg2uobbE5ETnikjDgwKewul+77w=",
+                    "contextInfo": {
+                      "pairedMediaType": "NOT_PAIRED_MEDIA"
+                    },
+                    "fileEncSha256": "hCBGnUxqGMreuVr3M1m6TmIoEQ5wmM/D7j5kRgGUQfo=",
+                    "mediaKeyTimestamp": "1752163940"
+                  },
+                  "messageContextInfo": {
+                    "messageSecret": "Gf9pnIkUiXalmr31BInfXUYSB4+f0hRx61Y8M8woE2k="
+                  }
+                },
+                "messageTimestamp": 1752163943,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "pairedMediaType": "NOT_PAIRED_MEDIA"
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wb0092jw5xic6ups46",
+                "key": {
+                  "id": "B7E7934F74C2F07BABD575B1E79748B4",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "I was trying to put in more hours. I promise to give more than 8 from tomorrow.",
+                  "messageContextInfo": {
+                    "messageSecret": "2VrCTIACXvAwhAQfenMo5Qu3f6STHuxg1nSBzPbMTso="
+                  }
+                },
+                "messageTimestamp": 1752161908,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "android",
+                "contextInfo": {
+                  "stanzaId": "3F4CA6F1A43FD33ACFEF",
+                  "participant": "268487062757527@lid",
+                  "quotedMessage": {
+                    "conversation": "also this is hardly 8 hours a day - are u busy with school work?"
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc0093jw5x3fg2l8bu",
+                "key": {
+                  "id": "18BFD0A4D6525808FAF3E20B989F31EC",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "i will look into it immediately, i think it's an issue with my OS.",
+                  "messageContextInfo": {
+                    "messageSecret": "/LC4KIhv4jGPHwIWR4eDMGRqECfFMNfQW85xxRxnfMc="
+                  }
+                },
+                "messageTimestamp": 1752161794,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "android",
+                "contextInfo": {
+                  "stanzaId": "3F990FC217EBE4E7EF6B",
+                  "participant": "268487062757527@lid",
+                  "quotedMessage": {
+                    "imageMessage": {
+                      "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m232/AQOHB7E6dfG8no8uuJD-9ycWBXJyj3R5yBQO--SZ2w_S3I3lo5xuhkcKRSCYGhgbEjxY_ozpnvLJ8tDPo_FYF9sWziyC-_1VurxxrcgHmg?ccb=9-4&oh=01_Q5Aa2AGW3mUVU3tY2FSZSYvAhdG1sb_xfi5fZY56WuA5vOIrPg&oe=68971734&_nc_sid=e6ed6c&mms3=true",
+                      "width": 1600,
+                      "height": 1152,
+                      "caption": "still no screenshots.",
+                      "mediaKey": "a9HiEOVeBPO6iyEM5o8e8f1/vvqismzUAKf4vhNAspY=",
+                      "mimetype": "image/jpeg",
+                      "directPath": "/o1/v/t24/f2/m232/AQOHB7E6dfG8no8uuJD-9ycWBXJyj3R5yBQO--SZ2w_S3I3lo5xuhkcKRSCYGhgbEjxY_ozpnvLJ8tDPo_FYF9sWziyC-_1VurxxrcgHmg?ccb=9-4&oh=01_Q5Aa2AGW3mUVU3tY2FSZSYvAhdG1sb_xfi5fZY56WuA5vOIrPg&oe=68971734&_nc_sid=e6ed6c",
+                      "fileLength": "141251",
+                      "fileSha256": "L9Fqc3E9i8cD5jcwKi0nHdw/7x8gpnkC/urFmFg0Mnc=",
+                      "contextInfo": {
+                        "pairedMediaType": "NOT_PAIRED_MEDIA"
+                      },
+                      "fileEncSha256": "ckkFTUtOeCTbzG/WdQVgegiq31zikOdoFN2uaMPCkrU=",
+                      "mediaKeyTimestamp": "1752147704"
+                    }
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc0094jw5xmcry759d",
+                "key": {
+                  "id": "3F4CA6F1A43FD33ACFEF",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "also this is hardly 8 hours a day - are u busy with school work?"
+                },
+                "messageTimestamp": 1752147737,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc0095jw5x12ztflxf",
+                "key": {
+                  "id": "3FB777A26B50B3C9C77D",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "we cant pay u until u get this figured out"
+                },
+                "messageTimestamp": 1752147714,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc0096jw5x0shctouh",
+                "key": {
+                  "id": "3F990FC217EBE4E7EF6B",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "imageMessage",
+                "message": {
+                  "imageMessage": {
+                    "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m232/AQOHB7E6dfG8no8uuJD-9ycWBXJyj3R5yBQO--SZ2w_S3I3lo5xuhkcKRSCYGhgbEjxY_ozpnvLJ8tDPo_FYF9sWziyC-_1VurxxrcgHmg?ccb=9-4&oh=01_Q5Aa2AGW3mUVU3tY2FSZSYvAhdG1sb_xfi5fZY56WuA5vOIrPg&oe=68971734&_nc_sid=e6ed6c&mms3=true",
+                    "width": 1600,
+                    "height": 1152,
+                    "caption": "still no screenshots.",
+                    "mediaKey": "a9HiEOVeBPO6iyEM5o8e8f1/vvqismzUAKf4vhNAspY=",
+                    "mimetype": "image/jpeg",
+                    "directPath": "/o1/v/t24/f2/m232/AQOHB7E6dfG8no8uuJD-9ycWBXJyj3R5yBQO--SZ2w_S3I3lo5xuhkcKRSCYGhgbEjxY_ozpnvLJ8tDPo_FYF9sWziyC-_1VurxxrcgHmg?ccb=9-4&oh=01_Q5Aa2AGW3mUVU3tY2FSZSYvAhdG1sb_xfi5fZY56WuA5vOIrPg&oe=68971734&_nc_sid=e6ed6c",
+                    "fileLength": "141251",
+                    "fileSha256": "L9Fqc3E9i8cD5jcwKi0nHdw/7x8gpnkC/urFmFg0Mnc=",
+                    "contextInfo": {
+                      "pairedMediaType": "NOT_PAIRED_MEDIA"
+                    },
+                    "fileEncSha256": "ckkFTUtOeCTbzG/WdQVgegiq31zikOdoFN2uaMPCkrU=",
+                    "mediaKeyTimestamp": "1752147704"
+                  }
+                },
+                "messageTimestamp": 1752147706,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "pairedMediaType": "NOT_PAIRED_MEDIA"
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc0097jw5xbn143lnu",
+                "key": {
+                  "id": "3EB06BBFBE51C74B8B20FF",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "@140939469263009 clocked in",
+                  "messageContextInfo": {
+                    "messageSecret": "EmnksOc16AjNUiaX/NYPKn+tCirojBk8zke5nJNm0tg="
+                  }
+                },
+                "messageTimestamp": 1752138821,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "mentionedJid": [
+                    "140939469263009@lid"
+                  ]
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc0098jw5xesb0jrs4",
+                "key": {
+                  "id": "3EB0911744110978ED116A",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "@140939469263009 EOD uploaded in mattermost",
+                  "messageContextInfo": {
+                    "messageSecret": "mVUfuVCovsx9vctiMQIKJYjDhOfAsd+c+dRhhCWDbyk="
+                  }
+                },
+                "messageTimestamp": 1752083142,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "mentionedJid": [
+                    "140939469263009@lid"
+                  ]
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc0099jw5x4b4ntzqs",
+                "key": {
+                  "id": "3EB09414085AF4A0AF967E",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "imageMessage",
+                "message": {
+                  "imageMessage": {
+                    "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m238/AQNAgtrccX92X_QTBcXOAyp-QNCE_EcqsQ2jV8zAKl9J7Wdn7GhU7sZoZtR4p2OADcJRHebYNKYd6vrPpJRLr8P0HATTW9sN35qj8JTdAA?ccb=9-4&oh=01_Q5Aa1wHOykCL9bT1qq3y5zJYpXAjwT5PVyY_8G_iyBd8AYFEsg&oe=68960A7B&_nc_sid=e6ed6c&mms3=true",
+                    "width": 1561,
+                    "height": 650,
+                    "mediaKey": "lcfNJO47iXNyJkz2stGdlLtuhTD7t1YfTPEez77funs=",
+                    "mimetype": "image/jpeg",
+                    "directPath": "/o1/v/t24/f2/m238/AQNAgtrccX92X_QTBcXOAyp-QNCE_EcqsQ2jV8zAKl9J7Wdn7GhU7sZoZtR4p2OADcJRHebYNKYd6vrPpJRLr8P0HATTW9sN35qj8JTdAA?ccb=9-4&oh=01_Q5Aa1wHOykCL9bT1qq3y5zJYpXAjwT5PVyY_8G_iyBd8AYFEsg&oe=68960A7B&_nc_sid=e6ed6c",
+                    "fileLength": "164285",
+                    "fileSha256": "BdCsdOqdmxp9ToKCKAUa9EfbpMyTeVeJ49DmZa1eT9E=",
+                    "contextInfo": {
+                      "pairedMediaType": "NOT_PAIRED_MEDIA"
+                    },
+                    "fileEncSha256": "t2yZmSL2OBzB/feOfr2uLa5zu5DlHXjMuSuHwYMZecg=",
+                    "mediaKeyTimestamp": "1752083119"
+                  },
+                  "messageContextInfo": {
+                    "messageSecret": "XbFMGBNF+1Hh20gFBQ5DtaeYgwEZ1NftWV6NfEBTdiU="
+                  }
+                },
+                "messageTimestamp": 1752083123,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "pairedMediaType": "NOT_PAIRED_MEDIA"
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009ajw5xtpdrktnu",
+                "key": {
+                  "id": "3FAF5C5015A619A8148D",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "give me until this afternoon to set that up- pls assign to me on asana"
+                },
+                "messageTimestamp": 1752080371,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009bjw5xfxwxl5ha",
+                "key": {
+                  "id": "3F223D5299CBAB6E3623",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "yes"
+                },
+                "messageTimestamp": 1752080361,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "stanzaId": "3FB1B9C0265BA22CCDC7",
+                  "participant": "140939469263009@lid",
+                  "quotedMessage": {
+                    "conversation": "@14045128427 we still cannot access ayush VM through anydesk due to permission. Maybe it will better to also have chrome remote access?"
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009cjw5x7hjr4ds4",
+                "key": {
+                  "id": "3F79C7A82DE810CEFF13",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Meeting recording - https://app.fireflies.ai/view/Office-Hours-Ayush::01JZQYPRX5G6G10YFRR32688P7"
+                },
+                "messageTimestamp": 1752079101,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009djw5xxphr19j9",
+                "key": {
+                  "id": "3FB1B9C0265BA22CCDC7",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "@14045128427 we still cannot access ayush VM through anydesk due to permission. Maybe it will better to also have chrome remote access?"
+                },
+                "messageTimestamp": 1752078052,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "mentionedJid": [
+                    "14045128427@s.whatsapp.net"
+                  ]
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009ejw5xlvslgln8",
+                "key": {
+                  "id": "3FC7770439AB3318AD96",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "@916909370605 https://teams.microsoft.com/l/meetup-join/19%3abe2f35824f1344acb4fdb87ab81ee96e%40thread.skype/1752076835169?context=%7b%22Tid%22%3a%22c147e4e9-376d-4475-be52-04843026d0aa%22%2c%22Oid%22%3a%226f1f34ac-0857-4926-803a-6af27e2f935d%22%7d"
+                },
+                "messageTimestamp": 1752076848,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "mentionedJid": [
+                    "916909370605@s.whatsapp.net"
+                  ]
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009fjw5xh6fxpxup",
+                "key": {
+                  "id": "3EB02DF9AD981E4B454BCD",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "done",
+                  "messageContextInfo": {
+                    "messageSecret": "2LJJHBkuT6XjADtE0VU8vL1jBOaHY8SPkgDW6yY43aU="
+                  }
+                },
+                "messageTimestamp": 1752073276,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "stanzaId": "3F58CE4F67802348F828",
+                  "participant": "268487062757527@lid",
+                  "quotedMessage": {
+                    "conversation": "thx"
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009gjw5xv1z1f1ni",
+                "key": {
+                  "id": "3F58CE4F67802348F828",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "thx"
+                },
+                "messageTimestamp": 1752073251,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009hjw5x0x8ugr7i",
+                "key": {
+                  "id": "3FEC8E721559F6ED98B7",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "yes"
+                },
+                "messageTimestamp": 1752073250,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009ijw5xvtpv696f",
+                "key": {
+                  "id": "3EB02CC1F60B5BCF398DCB",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "imageMessage",
+                "message": {
+                  "imageMessage": {
+                    "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m238/AQNwjN-3EEh7OE3vSTq3IM4QAJZjV6UJtXYfihRbEnDDHmSKlp0CsrGhN_hnQwr4vkrg62-llNDoEycHIQpscivp1XfXaxDLR4heuFBcgg?ccb=9-4&oh=01_Q5Aa1wHBd_n4y3Jr9ax-f9ZNgGsPGpPkijwvxSofLYrEABokJA&oe=6895EAC8&_nc_sid=e6ed6c&mms3=true",
+                    "width": 1600,
+                    "height": 897,
+                    "caption": "like this?",
+                    "mediaKey": "FM4UW6mjhkaQWi5FUaE3riWNO25UHRcOx91efYx4hq8=",
+                    "mimetype": "image/jpeg",
+                    "directPath": "/o1/v/t24/f2/m238/AQNwjN-3EEh7OE3vSTq3IM4QAJZjV6UJtXYfihRbEnDDHmSKlp0CsrGhN_hnQwr4vkrg62-llNDoEycHIQpscivp1XfXaxDLR4heuFBcgg?ccb=9-4&oh=01_Q5Aa1wHBd_n4y3Jr9ax-f9ZNgGsPGpPkijwvxSofLYrEABokJA&oe=6895EAC8&_nc_sid=e6ed6c",
+                    "fileLength": "101327",
+                    "fileSha256": "7JuHo1WumigN+fvmlPV08pfSBiIzxFF9ZtEjURmkoIU=",
+                    "contextInfo": {
+                      "stanzaId": "3FFD28FE1A66DD2D06A5",
+                      "participant": "268487062757527@lid",
+                      "quotedMessage": {
+                        "conversation": "great - thanks . can you also tag the activity as \"Training\""
+                      },
+                      "pairedMediaType": "NOT_PAIRED_MEDIA"
+                    },
+                    "fileEncSha256": "OsXURkIWbpmnScujtazPUx2IApAfDrEazSefYcf/Kp0=",
+                    "mediaKeyTimestamp": "1752073121"
+                  },
+                  "messageContextInfo": {
+                    "messageSecret": "/zIjTQEJkvhsDrcz831uj5P1Xjdz2kcRlJHL6iNgopg="
+                  }
+                },
+                "messageTimestamp": 1752073124,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "stanzaId": "3FFD28FE1A66DD2D06A5",
+                  "participant": "268487062757527@lid",
+                  "quotedMessage": {
+                    "conversation": "great - thanks . can you also tag the activity as \"Training\""
+                  },
+                  "pairedMediaType": "NOT_PAIRED_MEDIA"
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009jjw5x4bo5siix",
+                "key": {
+                  "id": "3FFD28FE1A66DD2D06A5",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "great - thanks . can you also tag the activity as \"Training\""
+                },
+                "messageTimestamp": 1752072925,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "stanzaId": "3EB0872F1D42F1AC453A3B",
+                  "participant": "916909370605@s.whatsapp.net",
+                  "quotedMessage": {
+                    "imageMessage": {
+                      "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m269/AQPWw9tcJDsRpVtGTgUX97iBaUBoM2xW0r9WCWdOcmz1Cr-ddN_VemSBY-UQJCdBU9YAT1nkZnd5-gVERXoKmL28TTIoIh08VfBEIGe1SA?ccb=9-4&oh=01_Q5Aa1wGEKuWUnw7jSNHsFfMH2CuRuF-94i1K5rrbNbmyB_UfZw&oe=689607E9&_nc_sid=e6ed6c&mms3=true",
+                      "width": 1600,
+                      "height": 897,
+                      "caption": "I have turned the screenshots on",
+                      "mediaKey": "7CvLWpuS3Fc8o/Px7Lgp40/kmSVlkMjQ4aK6kNlEZOQ=",
+                      "mimetype": "image/jpeg",
+                      "directPath": "/o1/v/t24/f2/m269/AQPWw9tcJDsRpVtGTgUX97iBaUBoM2xW0r9WCWdOcmz1Cr-ddN_VemSBY-UQJCdBU9YAT1nkZnd5-gVERXoKmL28TTIoIh08VfBEIGe1SA?ccb=9-4&oh=01_Q5Aa1wGEKuWUnw7jSNHsFfMH2CuRuF-94i1K5rrbNbmyB_UfZw&oe=689607E9&_nc_sid=e6ed6c",
+                      "fileLength": "228280",
+                      "fileSha256": "6Hm9kQ/BF3H3sNpjrE/K9faaCpdlJSXfjIHyyOgxo8A=",
+                      "contextInfo": {
+                        "pairedMediaType": "NOT_PAIRED_MEDIA"
+                      },
+                      "fileEncSha256": "teEtGjQRI2ZURYVVVdglamNU2iDDzZjRLaM9n8hKT7E=",
+                      "mediaKeyTimestamp": "1752072794"
+                    }
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009kjw5xv6i3zswh",
+                "key": {
+                  "id": "3FF129AC7183819FB032",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "imageMessage",
+                "message": {
+                  "imageMessage": {
+                    "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m234/AQMcESyhkykrz9K2P5YTVakgJn7cHPo5_mAIE5tlDGukruOeFrjp-tAacI89PbY_CAUNKZH9_ioVKMSgqagCsy7fQHBKoULoz12ThsHMxA?ccb=9-4&oh=01_Q5Aa1wEtGELRWWgKCjHxsu_RZVIb1K-3n9UkkH0i91P0nfNqUw&oe=689602A8&_nc_sid=e6ed6c&mms3=true",
+                    "width": 157,
+                    "height": 439,
+                    "mediaKey": "K7XnbShPhl7mMJnQQnSs4ns796Xyj47Bo8+NaNbqKIM=",
+                    "mimetype": "image/jpeg",
+                    "directPath": "/o1/v/t24/f2/m234/AQMcESyhkykrz9K2P5YTVakgJn7cHPo5_mAIE5tlDGukruOeFrjp-tAacI89PbY_CAUNKZH9_ioVKMSgqagCsy7fQHBKoULoz12ThsHMxA?ccb=9-4&oh=01_Q5Aa1wEtGELRWWgKCjHxsu_RZVIb1K-3n9UkkH0i91P0nfNqUw&oe=689602A8&_nc_sid=e6ed6c",
+                    "fileLength": "8976",
+                    "fileSha256": "8inslKJLSege3LTVYlRTNSKomiPqut2A/y9jrLaFpW8=",
+                    "contextInfo": {
+                      "pairedMediaType": "NOT_PAIRED_MEDIA"
+                    },
+                    "fileEncSha256": "jsTPzRVYf6jZtxwIJ/clsMVPCx+HtciFk5l7TLF63RY=",
+                    "mediaKeyTimestamp": "1752072823"
+                  }
+                },
+                "messageTimestamp": 1752072825,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "pairedMediaType": "NOT_PAIRED_MEDIA"
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009ljw5xwx9jl8za",
+                "key": {
+                  "id": "3FA19201D8C4C0BC8E35",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "imageMessage",
+                "message": {
+                  "imageMessage": {
+                    "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m233/AQMMkPJjskddb0hREv0C9KN2nGtZZvBIVyCvag1U-PBOVgnD_ayjI1zlrc8OdLXQTlqiZbIqtIChpjVAdI3Z9kyQxMYC_NLigK9TLRwDEA?ccb=9-4&oh=01_Q5Aa1wGAuASNl-sqfDcnwEaltTPyG_V7PBey6vOGevMuWVCiIQ&oe=6895F575&_nc_sid=e6ed6c&mms3=true",
+                    "width": 1600,
+                    "height": 1102,
+                    "mediaKey": "jIIhrdA0uarRAF+ufeiG+P8FZU4/ZeFFfdtbdnMN38o=",
+                    "mimetype": "image/jpeg",
+                    "directPath": "/o1/v/t24/f2/m233/AQMMkPJjskddb0hREv0C9KN2nGtZZvBIVyCvag1U-PBOVgnD_ayjI1zlrc8OdLXQTlqiZbIqtIChpjVAdI3Z9kyQxMYC_NLigK9TLRwDEA?ccb=9-4&oh=01_Q5Aa1wGAuASNl-sqfDcnwEaltTPyG_V7PBey6vOGevMuWVCiIQ&oe=6895F575&_nc_sid=e6ed6c",
+                    "fileLength": "153737",
+                    "fileSha256": "p+Cs28qwJVryYBDiRhxulAjNHnXyrXoFJ76wzTz/1aM=",
+                    "contextInfo": {
+                      "pairedMediaType": "NOT_PAIRED_MEDIA"
+                    },
+                    "fileEncSha256": "ve9hLolwh/Z+XiAu7UIciyXU0fTRD58OYwbtx++ttvg=",
+                    "mediaKeyTimestamp": "1752072801"
+                  }
+                },
+                "messageTimestamp": 1752072803,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "pairedMediaType": "NOT_PAIRED_MEDIA"
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009mjw5xsynwnhtu",
+                "key": {
+                  "id": "3EB0872F1D42F1AC453A3B",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "imageMessage",
+                "message": {
+                  "imageMessage": {
+                    "url": "https://mmg.whatsapp.net/o1/v/t24/f2/m269/AQPWw9tcJDsRpVtGTgUX97iBaUBoM2xW0r9WCWdOcmz1Cr-ddN_VemSBY-UQJCdBU9YAT1nkZnd5-gVERXoKmL28TTIoIh08VfBEIGe1SA?ccb=9-4&oh=01_Q5Aa1wGEKuWUnw7jSNHsFfMH2CuRuF-94i1K5rrbNbmyB_UfZw&oe=689607E9&_nc_sid=e6ed6c&mms3=true",
+                    "width": 1600,
+                    "height": 897,
+                    "caption": "I have turned the screenshots on",
+                    "mediaKey": "7CvLWpuS3Fc8o/Px7Lgp40/kmSVlkMjQ4aK6kNlEZOQ=",
+                    "mimetype": "image/jpeg",
+                    "directPath": "/o1/v/t24/f2/m269/AQPWw9tcJDsRpVtGTgUX97iBaUBoM2xW0r9WCWdOcmz1Cr-ddN_VemSBY-UQJCdBU9YAT1nkZnd5-gVERXoKmL28TTIoIh08VfBEIGe1SA?ccb=9-4&oh=01_Q5Aa1wGEKuWUnw7jSNHsFfMH2CuRuF-94i1K5rrbNbmyB_UfZw&oe=689607E9&_nc_sid=e6ed6c",
+                    "fileLength": "228280",
+                    "fileSha256": "6Hm9kQ/BF3H3sNpjrE/K9faaCpdlJSXfjIHyyOgxo8A=",
+                    "contextInfo": {
+                      "stanzaId": "3FECBFE2BB7CD0DB129D",
+                      "participant": "268487062757527@lid",
+                      "quotedMessage": {
+                        "conversation": "@916909370605  no screenshots on your toptracker?"
+                      },
+                      "pairedMediaType": "NOT_PAIRED_MEDIA"
+                    },
+                    "fileEncSha256": "teEtGjQRI2ZURYVVVdglamNU2iDDzZjRLaM9n8hKT7E=",
+                    "mediaKeyTimestamp": "1752072794"
+                  },
+                  "messageContextInfo": {
+                    "messageSecret": "AETV6KfTZJI9zXA2JLQ+Rjpmn3htPMVvEm6JCbQVD5c="
+                  }
+                },
+                "messageTimestamp": 1752072802,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "stanzaId": "3FECBFE2BB7CD0DB129D",
+                  "participant": "268487062757527@lid",
+                  "quotedMessage": {
+                    "conversation": "@916909370605  no screenshots on your toptracker?"
+                  },
+                  "pairedMediaType": "NOT_PAIRED_MEDIA"
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009njw5x4rrj5unn",
+                "key": {
+                  "id": "3FECBFE2BB7CD0DB129D",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "@916909370605  no screenshots on your toptracker?"
+                },
+                "messageTimestamp": 1752072709,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "mentionedJid": [
+                    "916909370605@s.whatsapp.net"
+                  ]
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009ojw5x2ws282w3",
+                "key": {
+                  "id": "F3EDAB17E3F9EB40DB2330BF0A9AC0E7",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Hi Team!\nExciting news - we have a few members of the new Fall Cohort joining us for the first time on our call tomorrow. Please make sure to give them a warm welcome!\nAlso, some important housekeeping: we will be officially transitioning our team communication from WhatsApp to a new platform called Mattermost. This will help us create dedicated channels for each project pod and keep our work more organized.\nACTION NEEDED: Please sign up for Mattermost before our meeting tomorrow.\nSignup Link: https://mattermost.truporchhomesvm.com/signup_user_complete/?id=aiap618b4jn77qyjpr1pfpkmhy&md=link&sbr=fa\nHow to Access: You can use it directly in your browser or download the desktop (Mac/Windows) and mobile apps.\nWe will cover more details during the call. Looking forward to seeing you all there!",
+                  "messageContextInfo": {
+                    "messageSecret": "ke9WUdEaaH+liRCfGNEscep+eZ6FzTVlFEsKW7JHVjA="
+                  }
+                },
+                "messageTimestamp": 1752029820,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "android",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wc009pjw5x0qy56l6t",
+                "key": {
+                  "id": "3EB0778404CA9C4E02ECAA",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "@140939469263009 clocked in",
+                  "messageContextInfo": {
+                    "messageSecret": "GWIK+r1Maj3Z6GK/hf596dEzTChLSJuqseoOhdN0CKc="
+                  }
+                },
+                "messageTimestamp": 1752029534,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "mentionedJid": [
+                    "140939469263009@lid"
+                  ]
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd009qjw5xrb9wauhd",
+                "key": {
+                  "id": "3FBB5307C3F3BC3DB6B7",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "268487062757527",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "https://www.youtube.com/watch?v=yfpVU_uEpy4&ab_channel=MarkKashef"
+                },
+                "messageTimestamp": 1752017729,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd009rjw5xfi6pr7uz",
+                "key": {
+                  "id": "26443C67A72F0D14AA9D231FCA989E3F",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "I will finish it up by tomorrow before the meeting.",
+                  "messageContextInfo": {
+                    "messageSecret": "jeaOfmWU9tpRQM50tHKwS3XLgT8z9oMMBfMlQQr4EOY="
+                  }
+                },
+                "messageTimestamp": 1752000581,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "android",
+                "contextInfo": {
+                  "stanzaId": "3F8D13BAFC3090ECCA91",
+                  "participant": "140939469263009@lid",
+                  "quotedMessage": {
+                    "conversation": "Are you also done with the A3 worksheet videos? Why are you already on the tasks?"
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd009sjw5x2rfd99eo",
+                "key": {
+                  "id": "3F8D13BAFC3090ECCA91",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Are you also done with the A3 worksheet videos? Why are you already on the tasks?"
+                },
+                "messageTimestamp": 1751999454,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd009tjw5xgb9e3mrz",
+                "key": {
+                  "id": "3EB0CF2D0000CC4FCFBCFE",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "documentMessage",
+                "message": {
+                  "documentMessage": {
+                    "url": "https://mmg.whatsapp.net/v/t62.7119-24/40289916_1059384012487646_8323790758982679538_n.enc?ccb=11-4&oh=01_Q5Aa1wEtI_W5pIxL1uxtEn0xev0xjU8cw3p7nQVn19iisE16FA&oe=6894C5AB&_nc_sid=5e03e0&mms3=true",
+                    "title": "EOD_AyushSengupta.pdf",
+                    "fileName": "EOD_AyushSengupta.pdf",
+                    "mediaKey": "MdQjIhcBHSU6VCZJZR6WgPNm3iQGZXModdjvcd0SSdk=",
+                    "mimetype": "application/pdf",
+                    "pageCount": 0,
+                    "directPath": "/v/t62.7119-24/40289916_1059384012487646_8323790758982679538_n.enc?ccb=11-4&oh=01_Q5Aa1wEtI_W5pIxL1uxtEn0xev0xjU8cw3p7nQVn19iisE16FA&oe=6894C5AB&_nc_sid=5e03e0",
+                    "fileLength": "114791",
+                    "fileSha256": "CgNZuWp4vBfd8t4zNte1w321E1CmBpWMNXjxvtqUOrg=",
+                    "contextInfo": {
+                      "stanzaId": "3FAFE730AB94FBE6ED63",
+                      "participant": "140939469263009@lid",
+                      "quotedMessage": {
+                        "conversation": "Yes, just for this one only, since it's not logged on your tracker, next time just do the summary."
+                      }
+                    },
+                    "fileEncSha256": "KvbF24NbnQ+4ikGWDsyUwRJUaSAZRWkhHOMW7G9HjXA=",
+                    "mediaKeyTimestamp": "1751997570"
+                  },
+                  "messageContextInfo": {
+                    "messageSecret": "87E+7niSWF0chbl3gO67yuc8CNTSKZG7EgleY+2Ml0Y="
+                  }
+                },
+                "messageTimestamp": 1751997574,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "stanzaId": "3FAFE730AB94FBE6ED63",
+                  "participant": "140939469263009@lid",
+                  "quotedMessage": {
+                    "conversation": "Yes, just for this one only, since it's not logged on your tracker, next time just do the summary."
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd009ujw5xfxqvmevc",
+                "key": {
+                  "id": "3EB0EF34A5A00752B6691F",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "okay.",
+                  "messageContextInfo": {
+                    "messageSecret": "VO+PXYLK1b4HAWEXJMBpGeKc37UoZ9DsmBdsZhr/bFM="
+                  }
+                },
+                "messageTimestamp": 1751997234,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "stanzaId": "3FAFE730AB94FBE6ED63",
+                  "participant": "140939469263009@lid",
+                  "quotedMessage": {
+                    "conversation": "Yes, just for this one only, since it's not logged on your tracker, next time just do the summary."
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd009vjw5x3j59fjp1",
+                "key": {
+                  "id": "3FAFE730AB94FBE6ED63",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Yes, just for this one only, since it's not logged on your tracker, next time just do the summary."
+                },
+                "messageTimestamp": 1751997193,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd009wjw5x8nva8nc5",
+                "key": {
+                  "id": "3EB004BF18D08E4B83CC59",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Date is 8th July. Should I put the start time and end time in the EOD and that too in EST?",
+                  "messageContextInfo": {
+                    "messageSecret": "cPrre2e55Tx6kXByFvpDSZCHRdQWrx9jePz1Z+2r5dQ="
+                  }
+                },
+                "messageTimestamp": 1751997141,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "stanzaId": "3FD48DC63DA297815181",
+                  "participant": "140939469263009@lid",
+                  "quotedMessage": {
+                    "conversation": "Is the date and time here is EST?"
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd009xjw5xrj7e6w4x",
+                "key": {
+                  "id": "3F3EE8303493AA4C0A58",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "You need to put that also on your EOD"
+                },
+                "messageTimestamp": 1751997101,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "stanzaId": "3EB0E5A0B70C3537AE17E5",
+                  "participant": "916909370605@s.whatsapp.net",
+                  "quotedMessage": {
+                    "conversation": "Noted on the above.\nI took around 3 hours to go through the videos, and then I was looking into the Whatsapp Translator project, going through possible approaches."
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd009yjw5x4vj4hldq",
+                "key": {
+                  "id": "3EB0E5A0B70C3537AE17E5",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Noted on the above.\nI took around 3 hours to go through the videos, and then I was looking into the Whatsapp Translator project, going through possible approaches.",
+                  "messageContextInfo": {
+                    "messageSecret": "mLPzXusaXhAM2r2HzurFncgQ0NfbLq7p7tjAPU/OTQg="
+                  }
+                },
+                "messageTimestamp": 1751997060,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": {
+                  "stanzaId": "3FEB3B1B0CD7B782C912",
+                  "participant": "140939469263009@lid",
+                  "quotedMessage": {
+                    "conversation": "Thanks for the quick and honest reply. I appreciate you letting me know.\n\nFor future reference, our company policy is that all work hours must be logged through the TopTracker app to be eligible for payment. This is a strict rule as it's how we track project progress and process payroll.\n\nHowever, since this was your very first day and you're still getting familiar with our systems, we will make a one-time exception.\n\nCan you please give me your best estimate of how long you spent watching the 5 training videos? \n\nTo ensure we're perfectly aligned moving forward, here is the simple daily workflow we need you to follow:\n1. Start of Shift: At the very beginning of your workday, clock in by starting the tracker in TopTracker. Once it's running, send me a quick message just so I can confirm everything looks good on my end.\n2. During Your Shift (Work & Breaks): All work must be done while the tracker is running. Our breaks are flexible, but you need to stop the tracker whenever you take a break (for lunch, etc.). It's very important that you remember to start it again immediately when you return to work. Only active work time should be logged.\n3. End of Shift: When you're ready to finish for the day, first send me your brief End of Day (EOD) report summarizing your completed tasks, takeaways on the vid,eo and any questions. After sending the report, clock out by stopping the tracker.\n\nWe understand there's a learning curve with any new role, so no worries at all. Following these steps will ensure everything runs smoothly. Looking forward to a productive day tomorrow!"
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd009zjw5xsqxjnuid",
+                "key": {
+                  "id": "3FD48DC63DA297815181",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "Is the date and time here is EST?"
+                },
+                "messageTimestamp": 1751997026,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": {
+                  "stanzaId": "3EB0441CB36352D20DC5F4",
+                  "participant": "916909370605@s.whatsapp.net",
+                  "quotedMessage": {
+                    "documentMessage": {
+                      "url": "https://mmg.whatsapp.net/v/t62.7119-24/32244755_743750274942055_221417434511799570_n.enc?ccb=11-4&oh=01_Q5Aa1wGbpCR7E5JUN1D7k8KDtauFKZycLd4IttbVi6ylQO0wyw&oe=6894D189&_nc_sid=5e03e0&mms3=true",
+                      "title": "EOD_AyushSengupta.pdf",
+                      "fileName": "EOD_AyushSengupta.pdf",
+                      "mediaKey": "sRXwABVaZEBUdej9cjZ2RQntW1TqXbOEGubn/8YqNTE=",
+                      "mimetype": "application/pdf",
+                      "pageCount": 0,
+                      "directPath": "/v/t62.7119-24/32244755_743750274942055_221417434511799570_n.enc?ccb=11-4&oh=01_Q5Aa1wGbpCR7E5JUN1D7k8KDtauFKZycLd4IttbVi6ylQO0wyw&oe=6894D189&_nc_sid=5e03e0",
+                      "fileLength": "113645",
+                      "fileSha256": "4FEfXvqGTQTC2ZyhX6SB8hm9X0MP8Xc16CwdUnNtcZM=",
+                      "fileEncSha256": "UUZisOP2jYmOrVCD8imhw1T9kcQ5J+/erHh1NOm+MLg=",
+                      "mediaKeyTimestamp": "1751996792"
+                    }
+                  }
+                },
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd00a0jw5xwmcie3nq",
+                "key": {
+                  "id": "3FD7F793318039571E6D",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "protocolMessage",
+                "message": {
+                  "protocolMessage": {
+                    "key": {
+                      "id": "3FEB3B1B0CD7B782C912",
+                      "fromMe": false,
+                      "remoteJid": "120363419939436902@g.us",
+                      "participant": "140939469263009@lid"
+                    },
+                    "type": "MESSAGE_EDIT",
+                    "timestampMs": "1751996860427",
+                    "editedMessage": {
+                      "conversation": "Thanks for the quick and honest reply. I appreciate you letting me know.\n\nFor future reference, our company policy is that all work hours must be logged through the TopTracker app to be eligible for payment. This is a strict rule as it's how we track project progress and process payroll.\n\nHowever, since this was your very first day and you're still getting familiar with our systems, we will make a one-time exception.\n\nCan you please give me your best estimate of how long you spent watching the 5 training videos? \n\nTo ensure we're perfectly aligned moving forward, here is the simple daily workflow we need you to follow:\n1. Start of Shift: At the very beginning of your workday, clock in by starting the tracker in TopTracker. Once it's running, send me a quick message just so I can confirm everything looks good on my end.\n2. During Your Shift (Work & Breaks): All work must be done while the tracker is running. Our breaks are flexible, but you need to stop the tracker whenever you take a break (for lunch, etc.). It's very important that you remember to start it again immediately when you return to work. Only active work time should be logged.\n3. End of Shift: When you're ready to finish for the day, first send me your brief End of Day (EOD) report summarizing your completed tasks, takeaways on the vid,eo and any questions. After sending the report, clock out by stopping the tracker.\n\nWe understand there's a learning curve with any new role, so no worries at all. Following these steps will ensure everything runs smoothly. Looking forward to a productive day tomorrow!"
+                    }
+                  }
+                },
+                "messageTimestamp": 1751996823,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd00a1jw5x48osa86o",
+                "key": {
+                  "id": "3EB0441CB36352D20DC5F4",
+                  "fromMe": true,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "Você",
+                "messageType": "documentMessage",
+                "message": {
+                  "documentMessage": {
+                    "url": "https://mmg.whatsapp.net/v/t62.7119-24/32244755_743750274942055_221417434511799570_n.enc?ccb=11-4&oh=01_Q5Aa1wGbpCR7E5JUN1D7k8KDtauFKZycLd4IttbVi6ylQO0wyw&oe=6894D189&_nc_sid=5e03e0&mms3=true",
+                    "title": "EOD_AyushSengupta.pdf",
+                    "fileName": "EOD_AyushSengupta.pdf",
+                    "mediaKey": "sRXwABVaZEBUdej9cjZ2RQntW1TqXbOEGubn/8YqNTE=",
+                    "mimetype": "application/pdf",
+                    "pageCount": 0,
+                    "directPath": "/v/t62.7119-24/32244755_743750274942055_221417434511799570_n.enc?ccb=11-4&oh=01_Q5Aa1wGbpCR7E5JUN1D7k8KDtauFKZycLd4IttbVi6ylQO0wyw&oe=6894D189&_nc_sid=5e03e0",
+                    "fileLength": "113645",
+                    "fileSha256": "4FEfXvqGTQTC2ZyhX6SB8hm9X0MP8Xc16CwdUnNtcZM=",
+                    "fileEncSha256": "UUZisOP2jYmOrVCD8imhw1T9kcQ5J+/erHh1NOm+MLg=",
+                    "mediaKeyTimestamp": "1751996792"
+                  },
+                  "messageContextInfo": {
+                    "messageSecret": "0aIPrW57nZddi/H/xXlOe8srTUStvtutHyjTZYM1c9g="
+                  }
+                },
+                "messageTimestamp": 1751996795,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "web",
+                "contextInfo": null,
+                "MessageUpdate": []
+              },
+              {
+                "id": "cmd4495wd00a2jw5x1odjeqd5",
+                "key": {
+                  "id": "3F475DB0056CF725702B",
+                  "fromMe": false,
+                  "remoteJid": "120363419939436902@g.us"
+                },
+                "pushName": "140939469263009",
+                "messageType": "conversation",
+                "message": {
+                  "conversation": "I also don't see your EOD."
+                },
+                "messageTimestamp": 1751995824,
+                "instanceId": "79b7411f-f5e9-449a-b7d9-5659cab3167f",
+                "source": "desktop",
+                "contextInfo": null,
+                "MessageUpdate": []
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Evolution API1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evolution API": {
+      "main": [
+        []
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Evolution API2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Translator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Translator": {
+      "main": [
+        [
+          {
+            "node": "Evolution API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Translator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "728773e1-2c29-40e6-b874-87f89e9783fd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "518619ec41ffca1f11d31aa3ba23bc320c12ed8935f97bfa2d1d9ed452dceba8"
+  },
+  "id": "qEyU8nQukGBuAq4k",
+  "tags": []
+}
