@@ -1,7 +1,11 @@
 # WhatsApp Translator using n8n + Groq LLM
 
 This project is an **AI-powered WhatsApp message enhancer** built using `n8n`, `Groq LLM`, and the `Evolution API`. It enables users to send translated, polished, and professional versions of their messages to specific WhatsApp groups by using a mention-based trigger format.
-
+---
+## 🖼️ Workflow
+The workflow will look like this.  
+![Workflow Screenshot](wt_wf.png)
+---
 ## ✨ Features
 
 - Listens to WhatsApp messages via Webhook
